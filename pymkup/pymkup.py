@@ -1,26 +1,34 @@
 from os.path import dirname, realpath
 from pdfreader import PDFDocument
-from column_data import *
-from data_conversion import *
+from .column_data import *
+from .data_conversion import *
 
 
 class Pymkup:
     def __init__(self, file):
+        self.file = file
+        self.inpfn = dirname(realpath(__file__)) + self.file
+
         try:
-            self.file = file
-            self.inpfn = dirname(realpath(__file__)) + self.file
             self.fd = open(self.inpfn, "rb")
+        except FileNotFoundError:
+            raise FileNotFoundError(f"PDF file not found: {self.inpfn}")
+
+        try:
             self.template_pdf = PDFDocument(self.fd)
             # Checking if the PDF was authored by BB
             "Bluebeam" in self.template_pdf.metadata['Creator']
-
             self.all_pages = [p for p in self.template_pdf.pages()]
-            self.spaces_path = {}
-        except Exception:
-            print(self.inpfn, "doesnt exist.")
+        except Exception as e:
+            self.fd.close()
+            raise ValueError(
+                f"Failed to parse PDF '{self.inpfn}': {e}"
+            ) from e
+
+        self.spaces_path = {}
 
     def extended_columns():
-        all_custom_col = custom_columns
+        all_custom_col = list(custom_columns)
         all_custom_col.remove("Measurement Unit")
         return(all_custom_col)
 

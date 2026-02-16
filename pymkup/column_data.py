@@ -91,7 +91,7 @@ column_data = {
 
     # Unknown Properties
 
-    'P': 'P',  # All of the data combined
+    'P': 'P',  # All the data combined
     'Version': 'Version',  # Versioning, not sure how
     'LL': 'LL',  # Another Length Property
     # T/F - may be related to measurement or not

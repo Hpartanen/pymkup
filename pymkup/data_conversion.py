@@ -3,7 +3,7 @@ from fractions import Fraction
 from time import mktime, strptime
 from matplotlib.colors import to_hex
 import matplotlib.patches as patches
-from column_data import lf_columns
+from .column_data import lf_columns
 import pdfreader.types as t
 
 
