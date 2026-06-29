@@ -1,3 +1,4 @@
+import os
 import pytest
 from datetime import datetime
 
@@ -10,23 +11,27 @@ from pymkup.data_conversion import (
     tuple_float,
 )
 
+_TEST_PDF_DIR = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "..", "pymkup", "tests"
+)
+
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
 
 @pytest.fixture
 def deep_spaces_pdf():
-    return Pymkup("/tests/markup-deep-spaces.pdf")
+    return Pymkup(os.path.join(_TEST_PDF_DIR, "markup-deep-spaces.pdf"))
 
 
 @pytest.fixture
 def space_pdf():
-    return Pymkup("/tests/markup-space.pdf")
+    return Pymkup(os.path.join(_TEST_PDF_DIR, "markup-space.pdf"))
 
 
 @pytest.fixture
 def measure_pdf():
-    return Pymkup("/tests/measure.pdf")
+    return Pymkup(os.path.join(_TEST_PDF_DIR, "measure.pdf"))
 
 
 # ── Page Labels ───────────────────────────────────────────────────────────────
@@ -468,10 +473,9 @@ class TestContentHexConvert:
 class TestErrorHandling:
     def test_file_not_found_raises(self):
         with pytest.raises(FileNotFoundError, match="PDF file not found"):
-            Pymkup("/tests/nonexistent.pdf")
+            Pymkup("/nonexistent/path/file.pdf")
 
     def test_invalid_pdf_raises_value_error(self):
-        # __init__.py is inside the package dir so Pymkup can open it,
-        # but it's not a valid PDF
+        # pytest's own __init__.py is a real file but not a valid PDF
         with pytest.raises(ValueError, match="Failed to parse PDF"):
-            Pymkup("/__init__.py")
+            Pymkup(os.path.join(_TEST_PDF_DIR, "..", "..", "setup.py"))
