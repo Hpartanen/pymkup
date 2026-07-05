@@ -1,7 +1,17 @@
+import json
 import os
+from datetime import datetime
 from pdfreader import PDFDocument
 from .column_data import *
 from .data_conversion import *
+
+
+class PymkupEncoder(json.JSONEncoder):
+    """JSON encoder that serializes datetime values as ISO 8601 strings."""
+    def default(self, obj):
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        return super().default(obj)
 
 
 class Pymkup:
@@ -227,3 +237,7 @@ class Pymkup:
                     pass
             data['markups'].append(row_dict)
         return data
+
+    def to_json(self, column_list="default", **kwargs):
+        """Return markups() output as a JSON string. datetime values are ISO 8601."""
+        return json.dumps(self.markups(column_list=column_list), cls=PymkupEncoder, **kwargs)

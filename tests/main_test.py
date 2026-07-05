@@ -1,8 +1,9 @@
+import json
 import os
 import pytest
 from datetime import datetime
 
-from pymkup import Pymkup
+from pymkup import Pymkup, PymkupEncoder
 from pymkup.data_conversion import (
     content_hex_convert,
     feet_inches_convert,
@@ -479,3 +480,33 @@ class TestErrorHandling:
         # pytest's own __init__.py is a real file but not a valid PDF
         with pytest.raises(ValueError, match="Failed to parse PDF"):
             Pymkup(os.path.join(_TEST_PDF_DIR, "..", "..", "setup.py"))
+
+
+# ── JSON Serialization ────────────────────────────────────────────────────────
+
+
+class TestJsonSerialization:
+    def test_to_json_returns_string(self, deep_spaces_pdf):
+        result = deep_spaces_pdf.to_json()
+        assert isinstance(result, str)
+
+    def test_to_json_is_valid_json(self, deep_spaces_pdf):
+        result = deep_spaces_pdf.to_json()
+        parsed = json.loads(result)
+        assert "markups" in parsed
+
+    def test_to_json_dates_are_iso_strings(self, deep_spaces_pdf):
+        parsed = json.loads(deep_spaces_pdf.to_json())
+        creation_date = parsed["markups"][0]["Creation Date"]
+        assert isinstance(creation_date, str)
+        assert creation_date == "2021-04-20T20:26:07"
+
+    def test_pymkup_encoder_serializes_datetime(self):
+        data = {"date": datetime(2021, 4, 20, 20, 26, 7)}
+        result = json.dumps(data, cls=PymkupEncoder)
+        assert json.loads(result) == {"date": "2021-04-20T20:26:07"}
+
+    def test_pymkup_encoder_all_three_pdfs(self, deep_spaces_pdf, space_pdf, measure_pdf):
+        for pdf in (deep_spaces_pdf, space_pdf, measure_pdf):
+            result = pdf.to_json()
+            assert json.loads(result) is not None
