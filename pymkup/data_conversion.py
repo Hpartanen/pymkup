@@ -25,7 +25,8 @@ def content_hex_convert(content):
     if "FEFF" in str(content):
         content = bytes.fromhex(content[4:])
         content = str(content, 'ASCII')
-        content = content.splitlines()[1]
+        lines = content.splitlines()
+        content = lines[1] if len(lines) > 1 else lines[0]
         content = content.replace('\x00', '')
 
     return content
@@ -81,15 +82,9 @@ def measurement_col(markup):
             content_hex_convert(markup['Contents']),
             '°'])
     elif markup.Subtype == 'PolyLine':
-        '''
-        markup_rect = [*zip(list(markup.Vertices)[::2],
-                            list(markup.Vertices)[1::2])]
-        markup_rect = tuple_float(markup_rect)
-        line = LineString(markup_rect)
-        '''
         measurements = [[0, 'length']]
     else:
-        pass
+        return None
     return measurements[0]
 
 
@@ -125,6 +120,4 @@ def date_string(markup):
 
 
 def color_to_num(color_string):
-    for i in range(0, len(color_string)):
-        color_string[i] = int(color_string[i])
-    return to_hex(tuple(color_string))
+    return to_hex(tuple(int(v) for v in color_string))

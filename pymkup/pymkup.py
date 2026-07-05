@@ -1,4 +1,4 @@
-from os.path import dirname, realpath
+import os
 from pdfreader import PDFDocument
 from .column_data import *
 from .data_conversion import *
@@ -7,7 +7,7 @@ from .data_conversion import *
 class Pymkup:
     def __init__(self, file):
         self.file = file
-        self.inpfn = dirname(realpath(__file__)) + self.file
+        self.inpfn = os.path.abspath(file)
 
         try:
             self.fd = open(self.inpfn, "rb")
@@ -27,10 +27,11 @@ class Pymkup:
 
         self.spaces_path = {}
 
+    @staticmethod
     def extended_columns():
         all_custom_col = list(custom_columns)
         all_custom_col.remove("Measurement Unit")
-        return(all_custom_col)
+        return all_custom_col
 
     # Extract the page labels into a dictionary
     # This is broken for some files because of the hierarchy.
@@ -62,7 +63,7 @@ class Pymkup:
     def get_markups_index(self):
         markups_index = {}
         for idx, page in enumerate(self.all_pages):
-            if len(page.Annots) > 0:
+            if page.Annots is not None and len(page.Annots) > 0:
                 for num, annotation in enumerate(page.Annots):
                     markups_index[annotation.NM] = idx
         return markups_index
@@ -74,16 +75,17 @@ class Pymkup:
         column_list = []
         column_dict = {}
         for page in self.all_pages:
-            if len(page.Annots[0]) > 0:
+            if page.Annots is not None and len(page.Annots) > 0 and len(page.Annots[0]) > 0:
                 for column in page.Annots[0]:
                     column_list.append(column)
 
         # Remove dupes
-        [i for n, i in enumerate(column_list) if i not in column_list[:n]]
+        column_list = [i for n, i in enumerate(column_list) if i not in column_list[:n]]
 
         # Create dictionary with original name and corrected names
         for column in column_list:
-            column_dict[column] = column_data[column]
+            if column in column_data:
+                column_dict[column] = column_data[column]
 
         return column_dict
 
@@ -110,8 +112,6 @@ class Pymkup:
 
     def spaces(self, output="dictionary"):
         spaces = self.get_all_spaces()
-        if spaces is None:
-            return {'spaces': []}
 
         page_labels = self.get_page_labels()
         data = {'spaces': []}
@@ -119,13 +119,16 @@ class Pymkup:
         for key, value in page_labels.items():
             self.spaces_path[key] = []
             data['spaces'].append(key)
-            data['spaces'].append(self.spacesdict(spaces[key], key, {}))
+            space_value = spaces.get(key, [])
+            data['spaces'].append(self.spacesdict(space_value, key, {}))
 
         if output == 'dictionary':
             return data
 
         if output == 'vertices':
             return self.spaces_path
+
+        raise ValueError(f"Unknown output format: {output!r}. Use 'dictionary' or 'vertices'.")
 
     def markups(self, column_list="default"):
         all_columns = self.get_columns()
@@ -156,7 +159,7 @@ class Pymkup:
             spaces_vertices = self.spaces(output="vertices")
             space_check = any(self.get_all_spaces().values())
 
-        if 'Page Label' or 'Page Number' or 'Space' in chosen_columns_keys:
+        if any(c in chosen_columns_keys for c in ('Page Label', 'Page Number', 'Space')):
             markup_index = self.get_markups_index()
 
         if 'Page Label' in chosen_columns_keys:
@@ -202,8 +205,9 @@ class Pymkup:
                     elif column == 'Measurement':
                         if markup.get('Contents', None) is not None:
                             measurements = measurement_col(markup)
-                            row_dict['Measurement'] = measurements[0]
-                            row_dict['Measurement Unit'] = measurements[1]
+                            if measurements is not None:
+                                row_dict['Measurement'] = measurements[0]
+                                row_dict['Measurement Unit'] = measurements[1]
                     elif column in color_columns:
                         if len(markup[column]) == 3:
                             row_dict[chosen_columns[column]] = color_to_num(markup[column])
